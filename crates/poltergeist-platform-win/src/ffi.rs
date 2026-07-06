@@ -6,9 +6,11 @@
 use windows::Win32::Foundation::{HANDLE, HWND, POINT};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetAsyncKeyState, GetKeyState, MapVirtualKeyW, SendInput, VkKeyScanW, INPUT, MAPVK_VK_TO_VSC,
-    VK_CAPITAL, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON, VIRTUAL_KEY,
+    VIRTUAL_KEY, VK_CAPITAL, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON,
 };
-use windows::Win32::UI::WindowsAndMessaging::{GetCursorPos, GetForegroundWindow, SetForegroundWindow};
+use windows::Win32::UI::WindowsAndMessaging::{
+    GetCursorPos, GetForegroundWindow, SetForegroundWindow,
+};
 
 pub fn get_cursor_pos() -> Option<(i32, i32)> {
     // SAFETY: `POINT` is a stack value; `GetCursorPos` writes the cursor position or fails.
@@ -26,7 +28,8 @@ pub fn primary_mouse_buttons_down() -> bool {
     // SAFETY: `GetAsyncKeyState` is documented to accept any virtual-key code; we only pass
     // standard mouse button VK constants.
     unsafe {
-        let any = |vk: VIRTUAL_KEY| -> bool { (GetAsyncKeyState(vk.0 as i32) as u16 & 0x8000) != 0 };
+        let any =
+            |vk: VIRTUAL_KEY| -> bool { (GetAsyncKeyState(vk.0 as i32) as u16 & 0x8000) != 0 };
         any(VK_LBUTTON) || any(VK_RBUTTON) || any(VK_MBUTTON)
     }
 }
@@ -134,7 +137,10 @@ pub enum CreateGlobalMutexOutcome {
     CreateFailed,
 }
 
-pub fn create_global_mutex(initial_owner: bool, name_utf16_nul: &[u16]) -> CreateGlobalMutexOutcome {
+pub fn create_global_mutex(
+    initial_owner: bool,
+    name_utf16_nul: &[u16],
+) -> CreateGlobalMutexOutcome {
     use windows::core::PCWSTR;
     use windows::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
     use windows::Win32::System::Threading::CreateMutexW;

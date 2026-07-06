@@ -32,9 +32,11 @@ pub fn try_acquire(is_admin: bool) -> AcquireResult {
             AcquireResult::Acquired(SingleInstanceGuard { handle })
         }
         crate::ffi::CreateGlobalMutexOutcome::AlreadyRunning => AcquireResult::AlreadyRunning,
-        crate::ffi::CreateGlobalMutexOutcome::CreateFailed => AcquireResult::Acquired(SingleInstanceGuard {
-            handle: HANDLE(std::ptr::null_mut()),
-        }),
+        crate::ffi::CreateGlobalMutexOutcome::CreateFailed => {
+            AcquireResult::Acquired(SingleInstanceGuard {
+                handle: HANDLE(std::ptr::null_mut()),
+            })
+        }
     }
 }
 
