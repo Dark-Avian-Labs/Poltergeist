@@ -1,3 +1,6 @@
+#[cfg(windows)]
+mod ffi;
+
 pub mod cursor;
 pub mod focus;
 pub mod hotkeys;

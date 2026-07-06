@@ -9,12 +9,7 @@ pub struct SingleInstanceGuard {
 #[cfg(windows)]
 impl Drop for SingleInstanceGuard {
     fn drop(&mut self) {
-        use windows::Win32::Foundation::CloseHandle;
-        if !self.handle.is_invalid() {
-            unsafe {
-                let _ = CloseHandle(self.handle);
-            }
-        }
+        crate::ffi::close_handle_best_effort(self.handle);
     }
 }
 
@@ -26,39 +21,27 @@ pub enum AcquireResult {
 
 #[cfg(windows)]
 pub fn try_acquire(is_admin: bool) -> AcquireResult {
-    use windows::core::PCWSTR;
-    use windows::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
-    use windows::Win32::System::Threading::CreateMutexW;
-
     let name = mutex_name(is_admin);
     let wide: Vec<u16> = name
         .encode_utf16()
         .chain(std::iter::once(0))
         .collect::<Vec<_>>();
 
-    unsafe {
-        let handle = match CreateMutexW(None, false, PCWSTR(wide.as_ptr())) {
-            Ok(h) => h,
-            Err(_) => {
-                return AcquireResult::Acquired(SingleInstanceGuard {
-                    handle: HANDLE(std::ptr::null_mut()),
-                })
-            }
-        };
-        if GetLastError() == ERROR_ALREADY_EXISTS {
-            use windows::Win32::Foundation::CloseHandle;
-            let _ = CloseHandle(handle);
-            return AcquireResult::AlreadyRunning;
+    match crate::ffi::create_global_mutex(false, &wide) {
+        crate::ffi::CreateGlobalMutexOutcome::Created(handle) => {
+            AcquireResult::Acquired(SingleInstanceGuard { handle })
         }
-        AcquireResult::Acquired(SingleInstanceGuard { handle })
+        crate::ffi::CreateGlobalMutexOutcome::AlreadyRunning => AcquireResult::AlreadyRunning,
+        crate::ffi::CreateGlobalMutexOutcome::CreateFailed => {
+            AcquireResult::Acquired(SingleInstanceGuard {
+                handle: HANDLE(std::ptr::null_mut()),
+            })
+        }
     }
 }
 
 #[cfg(windows)]
 pub fn show_already_running_dialog(is_admin: bool) {
-    use windows::core::PCWSTR;
-    use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
-
     let title = if is_admin {
         "Poltergeist [ADMIN]"
     } else {
@@ -75,14 +58,7 @@ pub fn show_already_running_dialog(is_admin: bool) {
         .chain(std::iter::once(0))
         .collect::<Vec<_>>();
 
-    unsafe {
-        let _ = MessageBoxW(
-            None,
-            PCWSTR(body_w.as_ptr()),
-            PCWSTR(title_w.as_ptr()),
-            MB_OK | MB_ICONINFORMATION,
-        );
-    }
+    crate::ffi::message_box_information(&title_w, &body_w);
 }
 
 #[cfg(windows)]

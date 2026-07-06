@@ -170,7 +170,7 @@ fn apply_typing_compat_segments(segments: &[Segment]) -> anyhow::Result<()> {
 #[cfg(windows)]
 fn send_text(text: &str) -> anyhow::Result<()> {
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP,
+        INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP,
         KEYEVENTF_UNICODE,
     };
     let mut inputs = Vec::new();
@@ -202,9 +202,7 @@ fn send_text(text: &str) -> anyhow::Result<()> {
         inputs.push(down);
         inputs.push(up);
     }
-    unsafe {
-        let _ = SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
-    }
+    let _ = crate::ffi::send_keyboard_input(&inputs);
     Ok(())
 }
 
@@ -294,30 +292,24 @@ fn vk_for_main_key(key: &str) -> Option<windows::Win32::UI::Input::KeyboardAndMo
 
 #[cfg(windows)]
 fn send_vk(vk: windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY) -> anyhow::Result<()> {
-    use windows::Win32::UI::Input::KeyboardAndMouse::{
-        SendInput, INPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP,
-    };
+    use windows::Win32::UI::Input::KeyboardAndMouse::{KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP};
     let inputs = [
         key_input(vk, KEYBD_EVENT_FLAGS(0)),
         key_input(vk, KEYEVENTF_KEYUP),
     ];
-    unsafe {
-        let _ = SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
-    }
+    let _ = crate::ffi::send_keyboard_input(&inputs);
     Ok(())
 }
 
 #[cfg(windows)]
 fn caps_lock_on() -> bool {
-    use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CAPITAL};
-    unsafe { (GetKeyState(VK_CAPITAL.0 as i32) as i16 & 0x0001) != 0 }
+    crate::ffi::caps_lock_toggled_on()
 }
 
 #[cfg(windows)]
 fn send_char_via_vk(ch: char) -> anyhow::Result<bool> {
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        MapVirtualKeyW, SendInput, VkKeyScanW, INPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP,
-        MAPVK_VK_TO_VSC, VIRTUAL_KEY, VK_CONTROL, VK_MENU, VK_SHIFT,
+        KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_CONTROL, VK_MENU, VK_SHIFT,
     };
 
     let mut utf16 = [0u16; 2];
@@ -325,7 +317,7 @@ fn send_char_via_vk(ch: char) -> anyhow::Result<bool> {
     if encoded.len() != 1 {
         return Ok(false);
     }
-    let scan_result = unsafe { VkKeyScanW(encoded[0]) };
+    let scan_result = crate::ffi::vk_key_scan_w(encoded[0]);
     if scan_result == -1 {
         return Ok(false);
     }
@@ -339,7 +331,7 @@ fn send_char_via_vk(ch: char) -> anyhow::Result<bool> {
     let needs_ctrl = (modifier_state & 0x02) != 0;
     let needs_alt = (modifier_state & 0x04) != 0;
     let vk = VIRTUAL_KEY(vk_u8 as u16);
-    let _scan = unsafe { MapVirtualKeyW(vk_u8 as u32, MAPVK_VK_TO_VSC) };
+    let _scan = crate::ffi::map_virtual_key_vk_to_vsc(vk_u8 as u32);
 
     let mut inputs = Vec::new();
     if needs_shift {
@@ -363,17 +355,14 @@ fn send_char_via_vk(ch: char) -> anyhow::Result<bool> {
         inputs.push(key_input(VK_SHIFT, KEYEVENTF_KEYUP));
     }
 
-    unsafe {
-        let _ = SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
-    }
+    let _ = crate::ffi::send_keyboard_input(&inputs);
     Ok(true)
 }
 
 #[cfg(windows)]
 fn send_hotkey(combo: &str) -> anyhow::Result<()> {
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        SendInput, INPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_CONTROL, VK_LWIN,
-        VK_MENU, VK_SHIFT,
+        KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_SHIFT,
     };
 
     let mut modifiers = Vec::new();
@@ -405,9 +394,7 @@ fn send_hotkey(combo: &str) -> anyhow::Result<()> {
         inputs.push(key_input(modifier, KEYEVENTF_KEYUP));
     }
     if !inputs.is_empty() {
-        unsafe {
-            let _ = SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
-        }
+        let _ = crate::ffi::send_keyboard_input(&inputs);
     }
     Ok(())
 }
