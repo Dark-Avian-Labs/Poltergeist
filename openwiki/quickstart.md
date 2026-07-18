@@ -1,99 +1,65 @@
-# Poltergeist OpenWiki Quickstart
+---
+type: Repository Overview
+title: Quickstart
+description: Entrypoint for agents and humans working on Poltergeist, the Windows snippet manager.
+tags: [quickstart, overview]
+timestamp: 2026-07-19T01:20:00Z
+---
 
-Welcome to Poltergeist, a portable Windows snippet manager designed as a spiritual successor to GhostWriter and alternative to PhraseExpress.
+# Poltergeist OpenWiki
 
-## Repository Overview
+Poltergeist is a **portable Windows snippet manager**: a global hotkey opens a nested popup at the mouse cursor, then the selected snippet is expanded (tokens, conditionals, optional DeepL) and injected into the previously focused field. It targets GhostWriter / PhraseExpress-style workflows for individuals and teams.
 
-Poltergeist is a Rust-based desktop application that provides intelligent snippet management with context-aware injection. Press a global hotkey (`Ctrl+Alt+Space` by default) to open a nested popup at your cursor, pick a snippet, and watch it get typed or pasted into the focused application field.
+Audience: contributors and agents changing the Rust/Slint desktop app, token engine, team sync, or Windows injection paths.
 
-**Key Characteristics:**
-- **Platform**: Windows 10/11 native application
-- **Language**: Rust 1.77+
-- **UI Framework**: Slint (declarative UI)
-- **Architecture**: Modular crate workspace with clear separation of concerns
-- **Target Users**: Power users, developers, support teams needing intelligent text expansion
+## Stack and layout
 
-## Quick Navigation
+Cargo workspace (`rust-version = 1.77`, edition 2021) with four crates:
 
-Start here for documentation:
-- **[Architecture Overview](architecture/index.md)** – Understanding the crate structure and design patterns
-- **[Core Concepts](core-concepts/index.md)** – Snippet models, token system, and business logic
-- **[Windows Platform](platform/index.md)** – Windows-specific integrations and injection system
-- **[Configuration & IO](configuration/index.md)** – Settings, team sharing, and external services
-- **[Development Guide](development/index.md)** – Building, testing, and contributing
-- **[User Workflows](workflows/index.md)** – How users interact with the application
+| Crate | Role |
+|-------|------|
+| `poltergeist-app` | Slint UI binary `poltergeist` |
+| `poltergeist-core` | Models, match rules, token expand |
+| `poltergeist-io` | Config, team pack, DB, DeepL HTTP |
+| `poltergeist-platform-win` | Hotkeys, focus, injection, single-instance |
 
-## Repository Structure
+Human docs: [README.md](../README.md) (build/packaging), [TUTORIAL.md](../TUTORIAL.md) (token syntax).
 
-```
-Poltergeist/
-├── Cargo.toml                 # Workspace configuration
-├── crates/
-│   ├── poltergeist-app/       # Main GUI application (Slint UI)
-│   ├── poltergeist-core/      # Business logic and data models
-│   ├── poltergeist-io/        # Configuration, team sharing, translation services
-│   └── poltergeist-platform-win/  # Windows-specific platform code
-├── assets/                    # Fonts, icons, and resources
-├── openwiki/                  # This documentation
-└── poltergeist.json          # Application configuration
-```
+## Run and develop
 
-## Core Features
-
-1. **Context-Aware Snippets**: Snippets and folders can show/hide based on active window context using regex matching
-2. **Rich Template Language**: Tokens for dates, clipboard content, waits, named keys, DeepL translation, database lookups, and conditional logic
-3. **Multiple Injection Modes**: Clipboard (Ctrl+V), Clipboard (Shift+Insert), typing (Key Events), and typing (Web Terminal) for compatibility
-4. **Team Collaboration**: Share snippets via UNC/local folders or HTTP(S) endpoints with automatic caching
-5. **Per-Folder Hotkeys**: Assign hotkeys to top-level folders for direct submenu access
-6. **Internationalization**: English, German, Spanish, and French UI translations
-7. **Portable Runtime**: No installer or registry dependencies; configuration lives next to executable
-
-## Getting Started
-
-### From Source
 ```powershell
-# Run from workspace root
 cargo run -p poltergeist-app --bin poltergeist
 ```
 
-### Requirements
-- Windows 10/11
-- Rust toolchain (rust-version = 1.77)
-- Visual Studio Build Tools (C++ workload) if linker tools are missing
+Requirements: Windows 10/11, Rust 1.77+, Visual Studio Build Tools (C++ linker) if linking fails.
 
-### Building Portable Executables
-```powershell
-# Standard user edition
-cargo build -p poltergeist-app --release
+Contributor checks: `cargo fmt --all`, `cargo check --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
 
-# Fixed admin edition
-cargo build -p poltergeist-app --release --features admin-edition
-```
+Release user build: `cargo build -p poltergeist-app --release` → `target/release/poltergeist.exe`.
+Admin-pinned build: same with `--features admin-edition`. Details in [build and CI](operations/build-and-ci.md) and [portable runtime](operations/portable-runtime-and-editions.md).
 
-Output: `target/release/poltergeist.exe`
+## Concept map
 
-## Editions
+- [Workspace layout](architecture/workspace-layout.md) — crate boundaries and dependencies
+- [Slint UI and i18n](architecture/slint-ui-and-i18n.md) — MainWindow, SnippetPopup, dual localization
+- [Win32 FFI layer](architecture/win32-ffi.md) — centralized unsafe Win32 wrappers
+- [Hotkey to injection](workflows/hotkey-to-injection.md) — main runtime path
+- [Import / export picker](workflows/import-export-picker.md) — personal/team tree transfer UI
+- [Models and tokens](domain/models-and-tokens.md) — config trees, expand pipeline, filters
+- [Portable runtime and editions](operations/portable-runtime-and-editions.md) — paths, config files, User/Admin
+- [Team share and DeepL](integrations/team-share-and-deepl.md) — UNC/HTTP packs, databases, translation
+- [Build and CI](operations/build-and-ci.md) — local packages and GitHub Actions
+- [Contributor checks](testing/contributor-checks.md) — tests and CI gates
 
-Poltergeist supports two runtime editions resolved in this order:
-1. `POLTERGEIST_EDITION=admin|user` environment variable
-2. `_admin.flag` file beside the executable
-3. Fallback: user edition
+## Agent gotchas
 
-When built with `--features admin-edition`, runtime ignores env/flag and is always Admin.
-
-## Key Source Files
-
-- **Application Entry**: `/crates/poltergeist-app/src/main.rs` (main application logic)
-- **UI Definition**: `/crates/poltergeist-app/ui/main.slint` (Slint UI definition)
-- **Data Models**: `/crates/poltergeist-core/src/models.rs` (Snippet, Folder, Node, etc.)
-- **Template Engine**: `/crates/poltergeist-core/src/tokens.rs` (token evaluation and matching)
-- **Windows Injection**: `/crates/poltergeist-platform-win/src/injector.rs` (text injection system)
-- **Configuration**: `/crates/poltergeist-io/src/config.rs` (settings loading/saving)
-- **Translation Service**: `/crates/poltergeist-io/src/translation.rs` (DeepL integration)
-
-## Next Steps
-
-1. Read the **[TUTORIAL.md](../TUTORIAL.md)** for complete snippet syntax reference
-2. Check **[Development Guide](development/index.md)** for contributor guidelines
-3. Explore **[Architecture Overview](architecture/index.md)** to understand the codebase structure
-4. Review **[Core Concepts](core-concepts/index.md)** to grasp the business logic
+- **Windows-first.** Product behavior and CI runners are Windows; platform crate stubs elsewhere.
+- **`base_dir()`** uses the exe directory, but when the exe lives under `target/debug` or `target/release` it redirects to the **workspace root** so `cargo run` finds `poltergeist.json` / assets.
+- **Edition** is resolved in the app (`detect_edition`), not in `poltergeist-io`: feature `admin-edition` → env `POLTERGEIST_EDITION` → `_admin.flag` → User.
+- **CI renames** the admin release binary to `poltergeist-admin.exe` in the zip; Cargo still emits `poltergeist.exe`.
+- Domain type is `Node` / `PoltergeistConfig` (not `TreeNode` / `Config`). UI label “Web Terminal” maps to `InjectionMode::TypingCompat`.
+- `picker.rs` is the **import/export** tree UI, not the snippet popup (`SnippetPopup` in Slint).
+- Dual i18n: Slint `@tr` and Rust `i18n::tr` share the same `.po` files — switch both via `apply_bundled_translation`.
+- All platform `unsafe` Win32 calls belong in `ffi.rs`; other modules stub off-Windows.
+- DeepL talks to the **Free** API via raw `reqwest`; the `deepl` Cargo dependency is unused in source.
+- Full token syntax lives in [TUTORIAL.md](../TUTORIAL.md) — do not duplicate it wholesale here.
