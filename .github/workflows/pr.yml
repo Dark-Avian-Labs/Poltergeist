@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: blacksmith-4vcpu-windows-2025
+    runs-on: blacksmith-8vcpu-windows-2025
     timeout-minutes: 20
 
     steps:
@@ -28,11 +28,6 @@ jobs:
         with:
           shared-key: windows-stable-workspace
 
-      - name: check formatting
-        run: cargo fmt --all -- --check
-
-      - name: check linting
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
-
-      - name: run tests
-        run: cargo test --workspace --locked
+      - name: Run quality checks
+        shell: pwsh
+        run: ./scripts/validate.ps1

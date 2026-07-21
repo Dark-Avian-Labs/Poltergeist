@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Poltergeist quality gate. Run before committing or opening a PR.
+# Mirrors the Dark Avian Labs Rust validate contract (AppBase docs/org-standards/validate.md).
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+echo "==> cargo fmt --all -- --check"
+cargo fmt --all -- --check
+
+echo "==> cargo clippy --workspace --all-targets --locked -- -D warnings"
+cargo clippy --workspace --all-targets --locked -- -D warnings
+
+echo "==> cargo test --workspace --locked"
+cargo test --workspace --locked
+
+echo "==> validate passed"
