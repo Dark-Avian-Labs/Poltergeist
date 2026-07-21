@@ -1,11 +1,13 @@
 # Poltergeist
 
-![Platform: Windows](https://img.shields.io/badge/platform-Windows_10%2F11-0078D6?style=flat-square&logo=microsoft&logoColor=white)
-![Rust 1.77+](https://img.shields.io/badge/rust-1.77%2B-B7410E?style=flat-square&logo=rust&logoColor=white)
-![Slint](https://img.shields.io/badge/UI-Slint-41CD52?style=flat-square&logo=slint&logoColor=white)
-![Portable build](https://img.shields.io/badge/build-Cargo-FFD43B?style=flat-square&logo=rust&logoColor=black)
-![i18n: EN · DE · ES · FR](https://img.shields.io/badge/i18n-EN%20·%20DE%20·%20ES%20·%20FR-6C7A89?style=flat-square)
-![Made with Cursor](https://img.shields.io/badge/made_with-Cursor-000000?style=flat-square&logo=cursor&logoColor=white)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![CI](https://github.com/Dark-Avian-Labs/Poltergeist/actions/workflows/ci.yml/badge.svg)](https://github.com/Dark-Avian-Labs/Poltergeist/actions/workflows/ci.yml)
+[![PR](https://github.com/Dark-Avian-Labs/Poltergeist/actions/workflows/pr.yml/badge.svg)](https://github.com/Dark-Avian-Labs/Poltergeist/actions/workflows/pr.yml)
+![Rust 1.77+](https://img.shields.io/badge/rust-1.77%2B-B7410E?logo=rust&logoColor=white)
+![Platform: Windows](https://img.shields.io/badge/platform-Windows_10%2F11-0078D6?logo=microsoft&logoColor=white)
+![Slint](https://img.shields.io/badge/UI-Slint-41CD52?logo=slint&logoColor=white)
+![i18n: EN · DE · ES · FR](https://img.shields.io/badge/i18n-EN%20·%20DE%20·%20ES%20·%20FR-6C7A89)
+[![Cursor](https://img.shields.io/badge/Cursor-IDE-141414?logo=cursor&logoColor=white)](https://cursor.com)
 
 A portable Windows snippet manager. Press a global hotkey, pick a snippet
 from a nested popup at your mouse cursor, and watch it get typed or pasted
@@ -55,13 +57,22 @@ Requirements:
 - Rust toolchain (`rust-version = 1.77`)
 - Visual Studio Build Tools (C++ workload), if linker tools are missing
 
-Contributor checks:
+Contributor checks (run the quality gate before committing or opening a PR):
 
 ```powershell
-cargo fmt --all
-cargo check --workspace
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+./scripts/validate.ps1
+```
+
+```bash
+scripts/validate
+```
+
+Both entrypoints run the same checks:
+
+```text
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
 ```
 
 ## Building portable executables
@@ -95,14 +106,35 @@ For the default binary (`poltergeist.exe`), edition is resolved in this order:
 
 When built with `--features admin-edition`, runtime ignores env/flag and is always Admin.
 
-## Nightly CI artifacts
+## CI build artifacts
 
-The CI pipeline publishes two Windows zip artifacts:
+On push to `main`, CI builds and uploads two Windows zip artifacts to the
+workflow run for debugging/verification only (CI does **not** publish a GitHub
+Release):
 
-- `poltergeist-nightly-user-windows.zip` (contains `poltergeist.exe`)
-- `poltergeist-nightly-admin-windows.zip` (contains `poltergeist-admin.exe`)
+- `poltergeist-user-windows.zip` (contains `poltergeist.exe`)
+- `poltergeist-admin-windows.zip` (contains `poltergeist-admin.exe`)
 
 When present, `assets/` is packaged alongside the executable.
+
+## Releasing
+
+Releases are published manually via the GitHub Actions **Poltergeist Release**
+workflow:
+
+1. Go to **Actions → Poltergeist Release → Run workflow**.
+2. Optionally set `version` (e.g. `0.1.0`); leave empty to use `LATEST.VER`.
+3. Optionally toggle `prerelease` / `draft`.
+
+The workflow resolves the version (input or `LATEST.VER`), builds the user and
+admin Windows editions, and publishes a GitHub Release tagged `vX.Y` (or
+`vX.Y.Z`) with both zips attached.
+
+## Scripts
+
+| Script | Description |
+| ------ | ----------- |
+| `scripts/validate` / `scripts/validate.ps1` | Quality gate: `cargo fmt --check`, `cargo clippy -D warnings`, and `cargo test` (workspace, `--locked`). |
 
 ## Team share modes
 
@@ -133,3 +165,12 @@ store is included (useful for many corporate TLS interception setups).
 
 See **[TUTORIAL.md](./TUTORIAL.md)** for token syntax, conditionals,
 filters, and full examples.
+
+## Development
+
+Agent-oriented docs: [openwiki/quickstart.md](openwiki/quickstart.md).
+Org engineering standards: AppBase `docs/org-standards/`.
+
+## License
+
+Apache 2.0. See [LICENSE](LICENSE).

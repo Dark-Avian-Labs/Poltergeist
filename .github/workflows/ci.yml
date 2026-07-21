@@ -1,7 +1,7 @@
 name: Poltergeist CI/CD
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 on:
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   pre-checks:
-    runs-on: blacksmith-4vcpu-windows-2025
+    runs-on: blacksmith-8vcpu-windows-2025
     timeout-minutes: 25
 
     steps:
@@ -36,20 +36,15 @@ jobs:
         with:
           shared-key: windows-stable-workspace
 
-      - name: check formatting
-        run: cargo fmt --all -- --check
-
-      - name: check linting
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
-
-      - name: run tests
-        run: cargo test --workspace --locked
+      - name: Run quality checks
+        shell: pwsh
+        run: ./scripts/validate.ps1
 
       - name: Ensure admin-edition binary compiles
         run: cargo check -p poltergeist-app --features admin-edition --locked
 
   build:
-    runs-on: blacksmith-4vcpu-windows-2025
+    runs-on: blacksmith-8vcpu-windows-2025
     timeout-minutes: 35
     needs: pre-checks
 
@@ -76,7 +71,7 @@ jobs:
           if (Test-Path assets) {
             Copy-Item -Recurse assets staging-user/assets
           }
-          Compress-Archive -Path staging-user/* -DestinationPath poltergeist-nightly-user-windows.zip -Force
+          Compress-Archive -Path staging-user/* -DestinationPath poltergeist-user-windows.zip -Force
 
       - name: Build admin edition binary
         run: cargo build -p poltergeist-app --release --features admin-edition --locked
@@ -89,68 +84,23 @@ jobs:
           if (Test-Path assets) {
             Copy-Item -Recurse assets staging-admin/assets
           }
-          Compress-Archive -Path staging-admin/* -DestinationPath poltergeist-nightly-admin-windows.zip -Force
+          Compress-Archive -Path staging-admin/* -DestinationPath poltergeist-admin-windows.zip -Force
 
-      - name: Upload nightly zips
+      # Artifacts are for debugging/verification only. Published GitHub Releases
+      # are produced by the manual release.yml workflow, never on push.
+      - name: Upload build zips
         uses: actions/upload-artifact@v7
         with:
-          name: poltergeist-nightly-windows-zips
+          name: poltergeist-windows-zips
           path: |
-            poltergeist-nightly-user-windows.zip
-            poltergeist-nightly-admin-windows.zip
+            poltergeist-user-windows.zip
+            poltergeist-admin-windows.zip
           if-no-files-found: error
 
-  release:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    timeout-minutes: 10
-    needs: build
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout code
-        uses: useblacksmith/checkout@v1
-        with:
-          fetch-depth: 0
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: poltergeist-nightly-windows-zips
-          path: dist
-
-      - name: Move nightly tag to this commit
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -fa nightly -m "Nightly build ${{ github.run_number }} (${{ github.sha }})"
-          git push origin nightly --force
-
-      - name: Create or update nightly release
-        uses: iShark5060/actions-gh-release@v1
-        with:
-          tag_name: nightly
-          name: Nightly
-          prerelease: true
-          generate_release_notes: false
-          body: |
-            Automated **nightly** build from commit `${{ github.sha }}`.
-
-            [Workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            **User build:** `poltergeist-nightly-user-windows.zip` — run `poltergeist.exe` (or use `_admin.flag` / `POLTERGEIST_EDITION` with the standard binary).
-
-            **Admin build:** `poltergeist-nightly-admin-windows.zip` — run `poltergeist-admin.exe` (always Admin edition; separate taskbar icon when ICOs are present).
-
-            When present, keep the `assets` folder next to the exe (same layout as a portable install).
-          files: |
-            dist/poltergeist-nightly-user-windows.zip
-            dist/poltergeist-nightly-admin-windows.zip
-          fail_on_unmatched_files: true
-
   discord-status:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
-    needs: [pre-checks, build, release]
+    needs: [pre-checks, build]
     if: ${{ always() && github.ref == 'refs/heads/main' }}
 
     steps:
@@ -160,8 +110,6 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ contains(needs.*.result, 'failure') && 'failure' || contains(needs.*.result, 'cancelled') && 'cancelled' || 'success' }}
           content: "<@${{ secrets.DISCORD_USERID }}>"
-          title: ${{ github.workflow}}
-          description: |
-            Version: `nightly`
-            Download: available [here](${{ github.server_url }}/${{ github.repository }}/releases/tag/nightly)
+          title: ${{ github.workflow }}
+          description: ${{ contains(needs.*.result, 'failure') && format('CI failed for commit `{0}`. Review workflow logs.', github.sha) || contains(needs.*.result, 'cancelled') && format('CI was cancelled for commit `{0}`.', github.sha) || format('CI passed for commit `{0}`. Build artifacts are available on the workflow run.', github.sha) }}
           color: ${{ contains(needs.*.result, 'failure') && '0xff0000' || contains(needs.*.result, 'cancelled') && '0xffaa00' || '0x00ff00' }}

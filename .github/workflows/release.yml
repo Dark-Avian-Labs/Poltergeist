@@ -1,0 +1,180 @@
+name: Poltergeist Release
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (e.g. 0.1.0). Leave empty to use LATEST.VER.
+        required: false
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a pre-release
+        required: false
+        type: boolean
+        default: false
+      draft:
+        description: Create the GitHub release as a draft
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+
+    steps:
+      - name: Checkout code
+        uses: useblacksmith/checkout@v1
+        with:
+          persist-credentials: false
+
+      - name: Resolve release version
+        id: resolve
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$INPUT_VERSION" ]; then
+            version="$INPUT_VERSION"
+          elif [ -f LATEST.VER ]; then
+            version="$(tr -d '[:space:]' < LATEST.VER)"
+          else
+            echo "ERROR: No version input and LATEST.VER is missing."
+            exit 1
+          fi
+
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
+            echo "ERROR: Version must match X.Y or X.Y.Z (got '$version')."
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "Resolved release version $version (tag v$version)"
+
+  build:
+    runs-on: blacksmith-8vcpu-windows-2025
+    timeout-minutes: 35
+
+    needs: [prepare]
+
+    steps:
+      - name: Checkout code
+        uses: useblacksmith/checkout@v1
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies and build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-stable-workspace
+
+      - name: Build user edition binary
+        run: cargo build -p poltergeist-app --release --locked
+
+      - name: Package user edition zip
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          New-Item -ItemType Directory -Force staging-user | Out-Null
+          Copy-Item target/release/poltergeist.exe staging-user/poltergeist.exe
+          if (Test-Path assets) {
+            Copy-Item -Recurse assets staging-user/assets
+          }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path staging-user/* -DestinationPath "dist/poltergeist-$env:RELEASE_VERSION-user-windows.zip" -Force
+
+      - name: Build admin edition binary
+        run: cargo build -p poltergeist-app --release --features admin-edition --locked
+
+      - name: Package admin edition zip
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          New-Item -ItemType Directory -Force staging-admin | Out-Null
+          Copy-Item target/release/poltergeist.exe staging-admin/poltergeist-admin.exe
+          if (Test-Path assets) {
+            Copy-Item -Recurse assets staging-admin/assets
+          }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path staging-admin/* -DestinationPath "dist/poltergeist-$env:RELEASE_VERSION-admin-windows.zip" -Force
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: poltergeist-release-windows-zips
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    needs: [prepare, build]
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: useblacksmith/checkout@v1
+        with:
+          persist-credentials: false
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: poltergeist-release-windows-zips
+          path: dist
+
+      - name: Publish GitHub release
+        uses: iShark5060/actions-gh-release@v1
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Poltergeist ${{ needs.prepare.outputs.version }}
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          body: |
+            **User build:** `poltergeist-${{ needs.prepare.outputs.version }}-user-windows.zip` — run `poltergeist.exe` (or use `_admin.flag` / `POLTERGEIST_EDITION` with the standard binary).
+
+            **Admin build:** `poltergeist-${{ needs.prepare.outputs.version }}-admin-windows.zip` — run `poltergeist-admin.exe` (always Admin edition).
+
+            When present, keep the `assets` folder next to the exe (same layout as a portable install).
+          files: dist/*.zip
+          fail_on_unmatched_files: true
+
+  discord-status:
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    needs: [prepare, build, release]
+    if: ${{ always() }}
+
+    steps:
+      - name: Send Discord status
+        uses: iShark5060/actions-discord-status@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ contains(needs.*.result, 'failure') && 'failure' || contains(needs.*.result, 'cancelled') && 'cancelled' || contains(needs.*.result, 'skipped') && 'skipped' || 'success' }}
+          content: "<@${{ secrets.DISCORD_USERID }}>"
+          title: ${{ github.workflow }}
+          description: ${{ contains(needs.*.result, 'failure') && format('Release v{0} failed. Review workflow logs before retrying.', needs.prepare.outputs.version) || contains(needs.*.result, 'cancelled') && format('Release v{0} was cancelled.', needs.prepare.outputs.version) || contains(needs.*.result, 'skipped') && format('Release v{0} was skipped.', needs.prepare.outputs.version) || format('Release v{0} succeeded. Windows user and admin builds are published.', needs.prepare.outputs.version) }}
+          color: ${{ contains(needs.*.result, 'failure') && '0xff0000' || contains(needs.*.result, 'cancelled') && '0xffaa00' || contains(needs.*.result, 'skipped') && '0x808080' || '0x00ff00' }}
