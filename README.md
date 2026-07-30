@@ -1,9 +1,8 @@
 # Poltergeist
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![CI](https://github.com/Dark-Avian-Labs/Poltergeist/actions/workflows/ci.yml/badge.svg)](https://github.com/Dark-Avian-Labs/Poltergeist/actions/workflows/ci.yml)
 [![PR](https://github.com/Dark-Avian-Labs/Poltergeist/actions/workflows/pr.yml/badge.svg)](https://github.com/Dark-Avian-Labs/Poltergeist/actions/workflows/pr.yml)
-![Rust 1.77+](https://img.shields.io/badge/rust-1.77%2B-B7410E?logo=rust&logoColor=white)
+![Rust 1.82+](https://img.shields.io/badge/rust-1.82%2B-B7410E?logo=rust&logoColor=white)
 ![Platform: Windows](https://img.shields.io/badge/platform-Windows_10%2F11-0078D6?logo=microsoft&logoColor=white)
 ![Slint](https://img.shields.io/badge/UI-Slint-41CD52?logo=slint&logoColor=white)
 ![i18n: EN · DE · ES · FR](https://img.shields.io/badge/i18n-EN%20·%20DE%20·%20ES%20·%20FR-6C7A89)
@@ -54,7 +53,7 @@ cargo run -p poltergeist-app --bin poltergeist
 Requirements:
 
 - Windows 10/11
-- Rust toolchain (`rust-version = 1.77`)
+- Rust toolchain (`rust-version = 1.82`)
 - Visual Studio Build Tools (C++ workload), if linker tools are missing
 
 Contributor checks (run the quality gate before committing or opening a PR):
@@ -106,17 +105,6 @@ For the default binary (`poltergeist.exe`), edition is resolved in this order:
 
 When built with `--features admin-edition`, runtime ignores env/flag and is always Admin.
 
-## CI build artifacts
-
-On push to `main`, CI builds and uploads two Windows zip artifacts to the
-workflow run for debugging/verification only (CI does **not** publish a GitHub
-Release):
-
-- `poltergeist-user-windows.zip` (contains `poltergeist.exe`)
-- `poltergeist-admin-windows.zip` (contains `poltergeist-admin.exe`)
-
-When present, `assets/` is packaged alongside the executable.
-
 ## Releasing
 
 Releases are published manually via the GitHub Actions **Poltergeist Release**
@@ -127,13 +115,18 @@ workflow:
 3. Optionally toggle `prerelease` / `draft`.
 
 The workflow resolves the version (input or `LATEST.VER`), builds the user and
-admin Windows editions, and publishes a GitHub Release tagged `vX.Y` (or
-`vX.Y.Z`) with both zips attached.
+admin Windows editions on the same job, and publishes a GitHub Release tagged
+`vX.Y` (or `vX.Y.Z`) with both zips attached:
+
+- `poltergeist-<version>-user-windows.zip` (contains `poltergeist.exe`)
+- `poltergeist-<version>-admin-windows.zip` (contains `poltergeist-admin.exe`)
+
+When present, `assets/` is packaged alongside the executable.
 
 ## Scripts
 
-| Script | Description |
-| ------ | ----------- |
+| Script                                      | Description                                                                                              |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `scripts/validate` / `scripts/validate.ps1` | Quality gate: `cargo fmt --check`, `cargo clippy -D warnings`, and `cargo test` (workspace, `--locked`). |
 
 ## Team share modes

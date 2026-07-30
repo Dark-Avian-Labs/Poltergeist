@@ -66,11 +66,14 @@ jobs:
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
           echo "Resolved release version $version (tag v$version)"
 
-  build:
+  build-and-release:
     runs-on: blacksmith-8vcpu-windows-2025
     timeout-minutes: 35
 
     needs: [prepare]
+
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -116,34 +119,6 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           Compress-Archive -Path staging-admin/* -DestinationPath "dist/poltergeist-$env:RELEASE_VERSION-admin-windows.zip" -Force
 
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: poltergeist-release-windows-zips
-          path: dist/*.zip
-          if-no-files-found: error
-
-  release:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
-    timeout-minutes: 10
-
-    needs: [prepare, build]
-
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout code
-        uses: useblacksmith/checkout@v1
-        with:
-          persist-credentials: false
-
-      - name: Download release artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: poltergeist-release-windows-zips
-          path: dist
-
       - name: Publish GitHub release
         uses: iShark5060/actions-gh-release@v1
         with:
@@ -165,7 +140,7 @@ jobs:
     runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
 
-    needs: [prepare, build, release]
+    needs: [prepare, build-and-release]
     if: ${{ always() }}
 
     steps:
