@@ -14,7 +14,7 @@ concurrency:
 jobs:
   validate:
     runs-on: blacksmith-8vcpu-windows-2025
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout code
@@ -31,3 +31,6 @@ jobs:
       - name: Run quality checks
         shell: pwsh
         run: ./scripts/validate.ps1
+
+      - name: Ensure admin-edition binary compiles
+        run: cargo check -p poltergeist-app --features admin-edition --locked

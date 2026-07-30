@@ -27,23 +27,23 @@ Also verify admin compile when touching edition/UI branding:
 cargo check -p poltergeist-app --features admin-edition
 ```
 
-PR CI runs fmt check, clippy (`-D warnings`), and workspace tests on Windows Blacksmith. Main CI adds the admin-edition check and release packaging.
+PR CI runs fmt check, clippy (`-D warnings`), workspace tests, and `cargo check` with `--features admin-edition` on Windows Blacksmith. Releases are built and published only via the manual `release.yml` workflow.
 
 ## What is tested today
 
 **`poltergeist-core`** — inline `#[cfg(test)]` modules:
 
-| Area | Coverage (high level) |
-|------|------------------------|
-| `tokens.rs` | IF/ELSIF/ELSE branches; INCLUDE + VAR; typing newline → enter; DATABASE with `$context` |
-| `context.rs` | First-matching pattern, named groups, `_raw` |
+| Area         | Coverage (high level)                                                                   |
+| ------------ | --------------------------------------------------------------------------------------- |
+| `tokens.rs`  | IF/ELSIF/ELSE branches; INCLUDE + VAR; typing newline → enter; DATABASE with `$context` |
+| `context.rs` | First-matching pattern, named groups, `_raw`                                            |
 
 **`poltergeist-io`**, **`poltergeist-platform-win`**, and **`poltergeist-app`** currently have little or no automated unit coverage — prefer manual Windows smoke (hotkey → popup → inject) for those layers, and extend core tests when changing expand/match semantics.
 
 ## Where to start
 
 - Token/context tests: `crates/poltergeist-core/src/{tokens,context}.rs`
-- CI gates: `.github/workflows/pr.yml`, `pre-checks` in `ci.yml`
+- CI gates: `.github/workflows/pr.yml`
 - Manual scenarios: [TUTORIAL.md](../../TUTORIAL.md) worked examples + injection mode notes
 
 ## Watch out for

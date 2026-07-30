@@ -1,9 +1,9 @@
 [workspace]
 members = [
-    "crates/poltergeist-app",
-    "crates/poltergeist-core",
-    "crates/poltergeist-io",
-    "crates/poltergeist-platform-win",
+  "crates/poltergeist-app",
+  "crates/poltergeist-core",
+  "crates/poltergeist-io",
+  "crates/poltergeist-platform-win",
 ]
 resolver = "2"
 
@@ -12,7 +12,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache 2.0"
 authors = ["Lutz Schwemer Panchez"]
-rust-version = "1.77"
+rust-version = "1.82"
 
 [workspace.dependencies]
 anyhow = "1"
@@ -23,7 +23,11 @@ regex = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "fs", "sync"] }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls-native-roots"] }
+reqwest = { version = "0.12", default-features = false, features = [
+  "blocking",
+  "json",
+  "rustls-tls-native-roots",
+] }
 deepl = "0.7"
 csv = "1"
 calamine = "0.28"
@@ -39,10 +43,10 @@ rfd = "0.17.2"
 [workspace.dependencies.windows]
 version = "0.58"
 features = [
-    "Win32_Foundation",
-    "Win32_Security",
-    "Win32_System_Registry",
-    "Win32_System_Threading",
-    "Win32_UI_Input_KeyboardAndMouse",
-    "Win32_UI_WindowsAndMessaging",
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_System_Registry",
+  "Win32_System_Threading",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
 ]
