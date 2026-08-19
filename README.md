@@ -9,10 +9,10 @@
 [![Cursor](https://img.shields.io/badge/Cursor-IDE-141414?logo=cursor&logoColor=white)](https://cursor.com)
 
 A portable Windows snippet manager. Press a global hotkey, pick a snippet
-from a nested popup at your mouse cursor, and watch it get typed or pasted
-into whichever field had focus.
+from a nested popup at the cursor, and it types or pastes into the field
+that had focus.
 
-Built as a spiritual successor to GhostWriter and an alternative to PhraseExpress.
+Built as a successor to GhostWriter and an alternative to PhraseExpress.
 
 > **New here?** The full syntax reference (tokens, operators, filters, and
 > worked examples) lives in **[TUTORIAL.md](./TUTORIAL.md)**.
