@@ -2,24 +2,24 @@
 
 ## Org standards
 
-Dark Avian Labs engineering conventions (README shape, CI/PR/release runners,
-validate contract, OpenWiki, release tracks) live in AppBase
-[`docs/org-standards/`](../AppBase/docs/org-standards/). Poltergeist follows
-those docs: it is a **Rust** app, so the quality gate is `scripts/validate`
-(bash) / `scripts/validate.ps1` (`cargo fmt --check`, `cargo clippy -D warnings`,
-`cargo test`), and it uses release **Track B** (manual GitHub Release via
-`.github/workflows/release.yml`). PR jobs run on Blacksmith
-`blacksmith-8vcpu-windows-2025` with `useblacksmith/checkout@v1`; Discord status
-on release runs on `blacksmith-2vcpu-ubuntu-2404`.
+CI/README/validate conventions live in AppBase [`docs/org-standards/`](../AppBase/docs/org-standards/). This is a **Rust** app: quality gate is `scripts/validate` / `scripts/validate.ps1`. Release **Track B** (manual GitHub Release). PR jobs on `blacksmith-8vcpu-windows-2025`. It does **not** follow the AppBase design system.
 
-## OpenWiki
+Token syntax lives in `TUTORIAL.md`. Product packaging lives in `README.md`.
 
-This repository has documentation located in the /openwiki directory.
+## Crates
 
-Start here:
+`poltergeist-app` → `poltergeist-core` + `poltergeist-io` + `poltergeist-platform-win`. Core is pure domain (no FS/network). IO owns config, team share, DB lookups, and DeepL. Platform-win owns OS. App owns Slint, `base_dir`, edition detect, and inject orchestration.
 
-- [OpenWiki quickstart](openwiki/quickstart.md)
+All `unsafe` Win32 calls belong in `poltergeist-platform-win` `ffi.rs`. `hotkeys.rs` uses the `global-hotkey` crate, not `ffi`. Dual i18n: Slint `@tr` and Rust `i18n::tr` share the same `.po` files; switch both via `apply_bundled_translation`.
 
-OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
+## Portable runtime
 
-When working in this repository, read the OpenWiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
+`base_dir()` is the exe directory, except when that directory is named `debug` or `release` under `target`: then it is the **workspace root**, so `cargo run` hits workspace `poltergeist.json` / `assets/`. Edition policy lives in the app, not `config.rs`. Resolve order: `--features admin-edition` (always Admin) → `POLTERGEIST_EDITION` → `_admin.flag` → User.
+
+User edition syncs team share into the local tree/cache. Admin treats local `tree_team` as authoritative. Cargo always emits `poltergeist.exe`; release packaging **renames** the admin zip entry to `poltergeist-admin.exe`.
+
+## Injection
+
+UI label "Web Terminal" is core enum `TypingCompat`. Core `InjectionMode` and platform `injector::InjectionMode` are **separate** enums; the app maps them. Expand order before inject: includes → conditionals → DeepL (in **io**, not core) → platform inject. `{INCLUDE…}` max depth is 8. Team import is Admin-gated; team export is not.
+
+DeepL uses raw reqwest. The workspace `deepl` crate is unused. PR also `cargo check -p poltergeist-app --features admin-edition --locked` after validate.
