@@ -161,7 +161,7 @@ filters, and full examples.
 
 ## Development
 
-Agent-oriented docs: [openwiki/quickstart.md](openwiki/quickstart.md).
+Agent notes: [AGENTS.md](AGENTS.md).
 Org engineering standards: AppBase `docs/org-standards/`.
 
 ## License
