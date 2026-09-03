@@ -14,7 +14,7 @@ All `unsafe` Win32 calls belong in `poltergeist-platform-win` `ffi.rs`. `hotkeys
 
 ## Portable runtime
 
-`base_dir()` is the exe directory, except when that directory is named `debug` or `release` under `target`: then it is the **workspace root**, so `cargo run` hits workspace `poltergeist.json` / `assets/`. Edition policy lives in the app, not `config.rs`. Resolve order: `--features admin-edition` (always Admin) → `POLTERGEIST_EDITION` → `_admin.flag` → User.
+`base_dir()` is the exe directory, except when that directory is named `debug` or `release` under `target`: then it is the **workspace root**, so `cargo run` hits workspace `poltergeist.json`. Workspace `assets/` is compiled into the binary (Slint fonts/images, `include_bytes!` icons, winres exe icon). Release builds use `windows_subsystem = "windows"` (no console). Edition policy lives in the app, not `config.rs`. Resolve order: `--features admin-edition` (always Admin) → `POLTERGEIST_EDITION` → `_admin.flag` → User.
 
 User edition syncs team share into the local tree/cache. Admin treats local `tree_team` as authoritative. Cargo always emits `poltergeist.exe`; release packaging **renames** the admin zip entry to `poltergeist-admin.exe`.
 
