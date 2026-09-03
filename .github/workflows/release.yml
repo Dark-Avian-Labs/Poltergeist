@@ -97,9 +97,6 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force staging-user | Out-Null
           Copy-Item target/release/poltergeist.exe staging-user/poltergeist.exe
-          if (Test-Path assets) {
-            Copy-Item -Recurse assets staging-user/assets
-          }
           New-Item -ItemType Directory -Force dist | Out-Null
           Compress-Archive -Path staging-user/* -DestinationPath "dist/poltergeist-$env:RELEASE_VERSION-user-windows.zip" -Force
 
@@ -113,9 +110,6 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force staging-admin | Out-Null
           Copy-Item target/release/poltergeist.exe staging-admin/poltergeist-admin.exe
-          if (Test-Path assets) {
-            Copy-Item -Recurse assets staging-admin/assets
-          }
           New-Item -ItemType Directory -Force dist | Out-Null
           Compress-Archive -Path staging-admin/* -DestinationPath "dist/poltergeist-$env:RELEASE_VERSION-admin-windows.zip" -Force
 
@@ -132,7 +126,7 @@ jobs:
 
             **Admin build:** `poltergeist-${{ needs.prepare.outputs.version }}-admin-windows.zip` — run `poltergeist-admin.exe` (always Admin edition).
 
-            When present, keep the `assets` folder next to the exe (same layout as a portable install).
+            Fonts, UI images, and app icons are compiled into the executable. Unpack the zip and run the exe; no sidecar `assets` folder is required.
           files: dist/*.zip
           fail_on_unmatched_files: true
           upload_checksums: true

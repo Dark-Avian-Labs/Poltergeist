@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod i18n;
 mod picker;
 
@@ -30,6 +32,7 @@ use std::rc::Rc;
 use std::time::Duration;
 #[cfg(target_os = "windows")]
 use tauri_winrt_notification::{IconCrop, Toast};
+#[cfg(debug_assertions)]
 use tracing_subscriber::EnvFilter;
 use tray_icon::menu::{CheckMenuItem, Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem};
 use tray_icon::{
@@ -40,8 +43,11 @@ use tray_icon::{
 slint::include_modules!();
 
 fn init_logging() {
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    #[cfg(debug_assertions)]
+    {
+        let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+        tracing_subscriber::fmt().with_env_filter(filter).init();
+    }
 }
 
 fn persist_main_window_geometry(win: &slint::Window, state: &RefCell<AppState>, base: &Path) {
@@ -1505,7 +1511,8 @@ fn notify_tray(base_dir: &Path, title: &str, message: &str) {
         let mut toast = Toast::new(Toast::POWERSHELL_APP_ID)
             .title(title)
             .text1(message);
-        let icon_path = base_dir.join("assets").join("AppIcon.ico");
+        let icon_path = bundled_icon_path(Edition::User)
+            .unwrap_or_else(|| base_dir.join("assets").join("AppIcon.ico"));
         if icon_path.exists() {
             toast = toast.icon(&icon_path, IconCrop::Square, "Poltergeist");
         }
@@ -1876,7 +1883,36 @@ impl TrayRuntime {
     }
 }
 
+const USER_APP_ICON_ICO: &[u8] = include_bytes!("../../../assets/AppIcon.ico");
+const ADMIN_APP_ICON_ICO: &[u8] = include_bytes!("../../../assets/AppIconAdmin.ico");
+
+fn embedded_icon_bytes(edition: Edition) -> &'static [u8] {
+    match edition {
+        Edition::Admin => ADMIN_APP_ICON_ICO,
+        Edition::User => USER_APP_ICON_ICO,
+    }
+}
+
+fn bundled_icon_path(edition: Edition) -> Option<PathBuf> {
+    let bytes = embedded_icon_bytes(edition);
+    let file_name = match edition {
+        Edition::Admin => "AppIconAdmin.ico",
+        Edition::User => "AppIcon.ico",
+    };
+    let path = std::env::temp_dir()
+        .join("poltergeist-icons")
+        .join(file_name);
+    fs::create_dir_all(path.parent()?).ok()?;
+    fs::write(&path, bytes).ok()?;
+    Some(path)
+}
+
 fn load_tray_icon(base_dir: &Path, edition: Edition) -> Option<TrayIconImage> {
+    if let Some(path) = bundled_icon_path(edition) {
+        if let Ok(icon) = TrayIconImage::from_path(path, None) {
+            return Some(icon);
+        }
+    }
     let icon_names = if edition == Edition::Admin {
         ["AppIconAdmin.ico", "AppIcon.ico"]
     } else {
@@ -4824,8 +4860,9 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_token, build_translation_pair_token, extract_token_chips, format_hotkey_event,
-        TRANSLATION_SOURCE_LANGS, TRANSLATION_TARGET_LANGS,
+        build_token, build_translation_pair_token, bundled_icon_path, embedded_icon_bytes,
+        extract_token_chips, format_hotkey_event, Edition, TRANSLATION_SOURCE_LANGS,
+        TRANSLATION_TARGET_LANGS,
     };
 
     #[test]
@@ -5048,5 +5085,17 @@ mod tests {
             .expect("ES in target list");
         let token = build_translation_pair_token(en_idx, es_idx).unwrap();
         assert_eq!(token, "{TRANSLATION=EN>ES}{TRANSLATION_END}");
+    }
+
+    #[test]
+    fn bundled_app_icons_are_ico() {
+        const ICO_MAGIC: &[u8] = &[0, 0, 1, 0];
+        assert_eq!(&embedded_icon_bytes(Edition::User)[..4], ICO_MAGIC);
+        assert_eq!(&embedded_icon_bytes(Edition::Admin)[..4], ICO_MAGIC);
+        let path = bundled_icon_path(Edition::User).expect("write bundled icon");
+        assert_eq!(
+            std::fs::read(&path).expect("read bundled icon"),
+            embedded_icon_bytes(Edition::User)
+        );
     }
 }

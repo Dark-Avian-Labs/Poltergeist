@@ -50,6 +50,8 @@ From workspace root:
 cargo run -p poltergeist-app --bin poltergeist
 ```
 
+Debug builds keep a console window for tracing logs. Release builds are windowed and do not.
+
 Requirements:
 
 - Windows 10/11
@@ -121,7 +123,9 @@ admin Windows editions on the same job, and publishes a GitHub Release tagged
 - `poltergeist-<version>-user-windows.zip` (contains `poltergeist.exe`)
 - `poltergeist-<version>-admin-windows.zip` (contains `poltergeist-admin.exe`)
 
-When present, `assets/` is packaged alongside the executable.
+Fonts, UI images, and app icons are compiled into the executable. Release
+builds are windowed (no console / CMD window). Unpack the zip and run the exe;
+config and cache still live beside it.
 
 ## Scripts
 
