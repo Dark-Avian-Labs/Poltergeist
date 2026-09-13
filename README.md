@@ -12,18 +12,20 @@
 ![i18n: EN · DE · ES · FR](https://img.shields.io/badge/i18n-EN%20·%20DE%20·%20ES%20·%20FR-6C7A89?style=flat-square)
 [![Cursor](https://img.shields.io/badge/Cursor-IDE-141414?logo=cursor&logoColor=white&style=flat-square)](https://cursor.com)
 
-Portable Windows snippet manager. Global hotkey (default `Ctrl+Alt+Space`), nested picker at the cursor, tokens, conditionals, DeepL. Successor to GhostWriter.
+Poltergeist is the snippet manager I reach for when a form wants the same paragraph for the hundredth time. Hit the hotkey (default `Ctrl+Alt+Space`), pick from a nested menu at the cursor, and it types or pastes into whatever had focus.
 
-Token syntax: [TUTORIAL.md](TUTORIAL.md). Quality gate: `scripts/validate` / `scripts/validate.ps1`.
+Tokens, conditionals, team shares, DeepL. Portable: config sits beside the exe. This is the Rust successor to GhostWriter, and the one we actually ship.
+
+Token syntax: [TUTORIAL.md](TUTORIAL.md).
 
 ## Gotchas
 
 - Windows 10/11 plus a Rust toolchain (`rust-version = 1.82`). If the linker is missing, install Visual Studio Build Tools with the C++ workload.
 - Config and cache live beside the executable (`poltergeist.json`, `team_cache/`). `cargo run` is the exception: when the exe sits in `target/debug` or `target/release`, the workspace root is used instead.
-- Debug builds keep a console. Release builds are windowed (`windows_subsystem = "windows"`).
+- Debug builds keep a console. Release builds are windowed.
 - Edition: `--features admin-edition` pins Admin; otherwise `POLTERGEIST_EDITION` → `_admin.flag` beside the exe → User. Cargo always emits `poltergeist.exe`; the release zip renames the admin binary to `poltergeist-admin.exe`.
-- Team share: UNC/local folders are read/write. HTTP(S) is read-only (`{base}/manifest.json`, `team.poltergeist.json`, optional `databases/`). Cache fallback kicks in when remote is down.
-- DeepL uses rustls with the OS trust store (helps with corporate TLS interception).
+- Team share: UNC/local folders are read/write. HTTP(S) is read-only. Cache fallback kicks in when remote is down.
+- DeepL uses rustls with the OS trust store.
 
 ## License
 
