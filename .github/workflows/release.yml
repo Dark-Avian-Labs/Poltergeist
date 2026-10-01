@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   prepare:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     outputs:
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: useblacksmith/checkout@v1
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -67,7 +67,7 @@ jobs:
           echo "Resolved release version $version (tag v$version)"
 
   build-and-release:
-    runs-on: blacksmith-8vcpu-windows-2025
+    runs-on: windows-latest
     timeout-minutes: 35
 
     needs: [prepare]
@@ -77,7 +77,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: useblacksmith/checkout@v1
+        uses: actions/checkout@v7
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -133,7 +133,7 @@ jobs:
           fail_on_unmatched_files: true
           upload_checksums: true
   discord-status:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     needs: [prepare, build-and-release]

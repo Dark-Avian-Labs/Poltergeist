@@ -13,12 +13,13 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: blacksmith-8vcpu-windows-2025
+    # This label is not registered until the Windows runner exists.
+    runs-on: windows-2025
     timeout-minutes: 25
 
     steps:
       - name: Checkout code
-        uses: useblacksmith/checkout@v1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
