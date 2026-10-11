@@ -2,7 +2,7 @@
 
 ## Org standards
 
-CI/README/validate conventions live in AppBase [`docs/org-standards/`](../AppBase/docs/org-standards/). This is a **Rust** app: quality gate is `scripts/validate` / `scripts/validate.ps1`. Release **Track B** (manual GitHub Release). PR jobs on `blacksmith-8vcpu-windows-2025`. It does **not** follow the AppBase design system.
+CI/README/validate conventions live in AppBase [`docs/org-standards/`](../AppBase/docs/org-standards/). This is a **Rust** app: quality gate is `scripts/validate` / `scripts/validate.ps1`. Release **Track B** (manual GitHub Release). It does **not** follow the AppBase design system.
 
 Token syntax lives in `TUTORIAL.md`. Product packaging lives in `README.md`.
 
